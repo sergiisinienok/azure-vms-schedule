@@ -17,3 +17,10 @@ This project is intended to provide a set up of schedled workloads and VMs on/of
 7. Present the flow to AlexeyT and VitaliyG to gain the approval
 8. Create tasks for the team to implement.
 
+
+### Settig up access and the toolchain
+1. Terraform - Did so using the guide here https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli. Mac with homebrew. No issues so far.
+2. Microsoft Azure account - https://azure.microsoft.com/en-in/free/ - did pay as you go, no issues.
+3. Azure Account configuration - go to Azure Active Directory and add the app named "terraform", then go to Suscriptions>[Sub Name]>IAM and assign the Contributor role for this app.
+4. Teraform Code - all good. terraform fmt - do not like the result, reverted the change.
+5. terraform plan - shows error ///TBD: resolve it.
