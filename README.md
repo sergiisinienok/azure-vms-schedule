@@ -23,4 +23,48 @@ This project is intended to provide a set up of schedled workloads and VMs on/of
 2. Microsoft Azure account - https://azure.microsoft.com/en-in/free/ - did pay as you go, no issues.
 3. Azure Account configuration - go to Azure Active Directory and add the app named "terraform", then go to Suscriptions>[Sub Name]>IAM and assign the Contributor role for this app.
 4. Teraform Code - all good. terraform fmt - do not like the result, reverted the change.
-5. terraform plan - shows error ///TBD: resolve it.
+5. terraform plan - shows error. The error is:
+```terraform
+Error: Error ensuring Resource Providers are registered.
+│
+│ Terraform automatically attempts to register the Resource Providers it supports to
+│ ensure it's able to provision resources.
+│
+│ If you don't have permission to register Resource Providers you may wish to use the
+│ "skip_provider_registration" flag in the Provider block to disable this functionality.
+│
+│ Please note that if you opt out of Resource Provider Registration and Terraform tries
+│ to provision a resource from a Resource Provider which is unregistered, then the errors
+│ may appear misleading - for example:
+│
+│ > API version 2019-XX-XX was not found for Microsoft.Foo
+│
+│ Could indicate either that the Resource Provider "Microsoft.Foo" requires registration,
+│ but this could also indicate that this Azure Region doesn't support this API version.
+│
+│ More information on the "skip_provider_registration" flag can be found here:
+│ https://www.terraform.io/docs/providers/azurerm/index.html#skip_provider_registration
+│
+│ Original Error: Cannot register provider Microsoft.ServiceFabric with Azure Resource Manager: resources.ProvidersClient#Register: Failure responding to request: StatusCode=403 -- Original Error: autorest/azure: Service returned an error. Status=403 Code="AuthorizationFailed" Message="The client 'ba2da2d0-56ba-4b8b-ab95-a94c06af7a20' with object id 'ba2da2d0-56ba-4b8b-ab95-a94c06af7a20' does not have authorization to perform action 'Microsoft.ServiceFabric/register/action' over scope '/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5' or the scope is invalid. If access was recently granted, please refresh your credentials.".
+│
+│   with provider["registry.terraform.io/hashicorp/azurerm"],
+│   on main.tf line 2, in provider "azurerm":
+│    2: provider "azurerm" {
+
+```
+
+In order to fix it, we need to make sure the AD app terraform has a Contributor role assigned for our current subscription.
+
+### Automatically Provision infrastructure in Azure (VMs)
+Generally following [the guide](https://medium.com/@yoursshaan2212/terraform-to-provision-multiple-azure-virtual-machines-fab0020b4a6e)
+
+1. After applying the change, make sure you destroy all the set up if you do not need it any more to avoid unnecesary $ spending:
+```terraform
+terraform plan -destroy -out main.destroy.tfplan
+terraform apply main.destroy.tfplan
+```
+2. While applying the change, you can face with an error that the resources of certain size are not available at the certain region. Error message exmple:
+```terraform
+│ Error: compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. Status=<nil> Code="SkuNotAvailable" Message="The requested size for resource '/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5/resourceGroups/linuxnode-RG/providers/Microsoft.Compute/virtualMachines/linuxnode-01' is currently not available in location 'eastus2' zones '' for subscription 'ea1e5602-2bef-47c2-8355-74d08c45f9d5'. Please try another size or deploy to a different location or zones. See https://aka.ms/azureskunotavailable for details."
+```
+Try to change region or VM size to mitigate. You can do so by changing ```node_location``` and ```vm_size``` respectively at ```terraform.tfvars```.

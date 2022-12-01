@@ -101,7 +101,7 @@ resource "azurerm_virtual_machine" "example_linux_vm" {
     location = azurerm_resource_group.example_rg.location
     resource_group_name = azurerm_resource_group.example_rg.name
     network_interface_ids = [element(azurerm_network_interface.example_nic.*.id, count.index)]
-    vm_size = "Standard_A1_v2"
+    vm_size = "${var.vm_size}"
     delete_os_disk_on_termination = true
 
     storage_image_reference {
