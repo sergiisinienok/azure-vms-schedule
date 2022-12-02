@@ -68,3 +68,66 @@ terraform apply main.destroy.tfplan
 │ Error: compute.VirtualMachinesClient#CreateOrUpdate: Failure sending request: StatusCode=0 -- Original Error: autorest/azure: Service returned an error. Status=<nil> Code="SkuNotAvailable" Message="The requested size for resource '/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5/resourceGroups/linuxnode-RG/providers/Microsoft.Compute/virtualMachines/linuxnode-01' is currently not available in location 'eastus2' zones '' for subscription 'ea1e5602-2bef-47c2-8355-74d08c45f9d5'. Please try another size or deploy to a different location or zones. See https://aka.ms/azureskunotavailable for details."
 ```
 Try to change region or VM size to mitigate. You can do so by changing ```node_location``` and ```vm_size``` respectively at ```terraform.tfvars```.
+
+### Deploying Start/Stop VMs during off-hours feature into Azure
+Generally following [the guide here](https://github.com/microsoft/startstopv2-deployments)
+
+The deployment was done using [this guide](https://learn.microsoft.com/en-us/azure/azure-functions/start-stop-vms/deploy) by pressing the *Deployto Azure* button in [the GitHub Repo](https://github.com/microsoft/startstopv2-deployments/blob/main/README.md) (Global Azure) section.
+
+Parameters used for the deployment:
+![Parameters used for deployment](img/Create_Start_Stop_VMs_during_off_hours_-_V2_-_Microsoft_Azure-2.png)
+
+### Configuring the Start/Stop VMs during off-hours feature into Azure
+
+Generally following [the guide,Configure schedules overview section and below](https://learn.microsoft.com/en-us/azure/azure-functions/start-stop-vms/deploy)
+
+1. In order to STOP machines during off-hours schedule, configure the ```ststv2_vms_Scheduled_stop``` Logic App, every day at 23:00, Function-Try JSON is below:
+```json
+{
+  "Action": "stop",
+  "EnableClassic": false,
+  "RequestScopes": {
+    "ExcludedVMLists": [],
+    "ResourceGroups": [
+      "/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5/resourceGroups/linuxnode-RG/" /// Resource group's GUID
+    ]
+  }
+}
+```
+
+2. In order to START machines on schedule, configure the ```ststv2_vms_Sequenced_start``` Logic App, every day at 7:00, Function-Try JSON is below:
+```json
+{
+  "Action": "start",
+  "EnableClassic": false,
+  "RequestScopes": {
+    "ExcludedVMLists": [],
+    "ResourceGroups": [
+      "/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5/resourceGroups/linuxnode-RG/" /// Resource group's GUID
+    ]
+  }
+}
+```
+
+3. In order to STOP unused machines based on the avg Percentage CPU utilization, configure the ```ststv2_vms_AutoStop``` Logic App, every hour interval, Function-Try JSON is below:
+```json
+{
+  "Action": "stop",
+  "AutoStop_Condition": "LessThan",
+  "AutoStop_Description": "Alert to stop the VM if the CPU % falls below the threshold",
+  "AutoStop_Frequency": "00:05:00",
+  "AutoStop_MetricName": "Percentage CPU",
+  "AutoStop_Severity": "2",
+  "AutoStop_Threshold": "5",
+  "AutoStop_TimeAggregationOperator": "Average",
+  "AutoStop_TimeWindow": "01:00:00",
+  "EnableClassic": true,
+  "RequestScopes": {
+    "ExcludedVMLists": [],
+    "ResourceGroups": [
+      "/subscriptions/ea1e5602-2bef-47c2-8355-74d08c45f9d5/resourceGroups/linuxnode-RG/" /// Resource group's GUID
+    ]
+  }
+}
+```
+The above means that the VM will be stopped if in the previous hour it's average Percentage CPU utilization was below 5%.
